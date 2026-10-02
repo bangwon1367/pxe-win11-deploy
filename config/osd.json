@@ -1,0 +1,84 @@
+{
+  "_comment": "Everything site-specific lives here. This file is read from the share at deploy time, so editing it never requires rebuilding the WinPE image. Paths starting with Z: are on \\\\SERVER\\deploy.",
+
+  "Image": {
+    "VersionLabel": "Windows 11 26H2",
+    "WimPath": "Z:\\images\\26H2\\install.wim",
+    "EditionName": "Windows 11 Pro",
+    "Index": 6,
+    "ExpectedBuild": "26300",
+    "EnablementMsu": "",
+    "_EnablementMsu_note": "Only set this when applying 24H2/25H2 media and upgrading to 26H2 (26H2 is an enablement package on that servicing branch). Example: Z:\\\\images\\\\26H2\\\\windows11.0-kbXXXXXXX-x64.msu"
+  },
+
+  "Drivers": {
+    "Path": "Z:\\drivers\\x1yoga3-20LD",
+    "InstallOffline": true,
+    "_note": "Extract the Lenovo SCCM driver package (ds503742, ~5.7 GB) here. Nested folders are fine; Deploy.ps1 uses /Recurse."
+  },
+
+  "Computer": {
+    "NamePrefix": "X1Y",
+    "TimeZone": "W. Europe Standard Time",
+    "Locale": "en-US",
+    "Workgroup": "HOMELAB",
+    "Domain": "",
+    "DomainJoinOu": "",
+    "LocalAdmin": "deploy"
+  },
+
+  "Disk": {
+    "Layout": "gpt-uefi",
+    "EfiSizeMB": 300,
+    "MsrSizeMB": 16
+  },
+
+  "PostInstall": {
+    "EnableRDP": true,
+    "DisableHibernation": false,
+    "PowerPlan": "Balanced",
+    "TelemetryLevel": 1,
+    "DisableConsumerFeatures": true,
+    "UsePSWindowsUpdate": false,
+    "UseChocolateyFallback": true,
+    "WingetBundle": "Z:\\tools\\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle",
+    "Apps": [
+      "Microsoft.PowerToys",
+      "Microsoft.WindowsTerminal",
+      "Notepad++.Notepad++",
+      "7zip.7zip",
+      "VideoLAN.VLC",
+      "Mozilla.Firefox",
+      "Git.Git",
+      "Microsoft.VisualStudioCode"
+    ],
+    "_Apps_note": "winget --id values. Verify with: winget search <name>. Anything not resolvable is logged and skipped, never fatal.",
+    "VendorTools": [
+      "Lenovo.Commercial.Vantage"
+    ],
+    "_VendorTools_note": "Verify the winget id in your region first (winget search vantage). Lenovo Commercial Vantage is how you get firmware + the newer driver pieces Windows Update misses on this 2018 machine.",
+    "RemoveProvisionedApps": [
+      "Microsoft.BingNews",
+      "Microsoft.BingWeather",
+      "Microsoft.GetHelp",
+      "Microsoft.Getstarted",
+      "Microsoft.MicrosoftOfficeHub",
+      "Microsoft.MicrosoftSolitaireCollection",
+      "Microsoft.People",
+      "Microsoft.SkypeApp",
+      "Microsoft.WindowsFeedbackHub",
+      "Microsoft.Xbox.TCUI",
+      "Microsoft.XboxApp",
+      "Microsoft.XboxGamingOverlay",
+      "Microsoft.YourPhone",
+      "Microsoft.ZuneMusic",
+      "Microsoft.ZuneVideo",
+      "MicrosoftWindows.Client.WebExperience"
+    ]
+  },
+
+  "Logging": {
+    "ShareLogPath": "Z:\\logs",
+    "ShareStatePath": "Z:\\state"
+  }
+}

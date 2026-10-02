@@ -1,0 +1,31 @@
+# Appended to /etc/samba/smb.conf by install-server.sh (marker: pxe-win11-deploy)
+# Placeholders @DEPLOY@ @SHARE_USER@ are substituted at install time.
+
+[global]
+   # WinPE's SMB1-free client negotiates SMB2/3 fine, but keep these explicit.
+   server min protocol = SMB2
+   server signing = auto
+   map to guest = never
+   # Big WIM files: allow large reads and don't be stingy with sockets.
+   socket options = TCP_NODELAY IPTOS_LOWDELAY
+
+[deploy]
+   comment = pxe-win11-deploy: images, drivers, answer files, payloads
+   path = @DEPLOY@
+   browseable = yes
+   read only = yes
+   valid users = @SHARE_USER@
+   write list =
+   create mask = 0664
+   directory mask = 0775
+   # install.wim is ~5 GB; keep Windows from timing out on a slow link mid-apply.
+   aio read size = 1
+
+[deploy-out]
+   comment = pxe-win11-deploy: deployment logs + state written back by WinPE
+   path = @DEPLOY@/logs
+   browseable = yes
+   read only = no
+   valid users = @SHARE_USER@
+   create mask = 0660
+   directory mask = 0770

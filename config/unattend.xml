@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  unattend.xml - pxe-win11-deploy answer file for Windows 11 26H2 (build 26300).
+
+  This file is copied to \Windows\Panther\Unattend.xml in the applied image, which is the
+  documented implicit search location: when the image boots for the first time, Windows picks it
+  up and runs the oobeSystem pass with these settings.
+
+  What it does:
+    * locale/timezone/input
+    * suppresses the OOBE tourist screens and the online-account requirement
+    * creates the local administrator (CHANGE THE PASSWORD BELOW before you deploy)
+    * runs the post-install payload as a safety net in addition to SetupComplete.cmd
+
+  Known moving target: Microsoft keeps tightening OOBE on 24H2+ builds. If a future build ignores
+  <HideOnlineAccountScreens>, press Shift+F10 at OOBE and run:  start ms-cxh:localonly
+  or create the account by hand (net user deploy /add && net localgroup Administrators deploy /add).
+  SetupComplete.cmd runs as SYSTEM after OOBE in every case, so the rest of the deployment still
+  completes.
+-->
+<unattend xmlns="urn:schemas-microsoft-com:unattend"
+          xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+
+  <settings pass="specialize">
+    <component name="Microsoft-Windows-Shell-Setup"
+               processorArchitecture="amd64"
+               publicKeyToken="31bf3856ad364e35"
+               language="neutral"
+               versionScope="nonSxS"
+               xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+      <!-- * = let Windows pick; Post-Install.ps1 renames to <prefix>-<serial>. -->
+      <ComputerName>*</ComputerName>
+      <TimeZone>W. Europe Standard Time</TimeZone>
+    </component>
+
+    <!-- Reserved Storage is disabled at first boot by Post-Install.ps1
+         (DISM /Online /Set-ReservedStorageState), not from this answer file: an unrecognised
+         setting in a configuration pass makes Setup fail the whole pass, and that is not worth
+         the risk for ~7 GB. -->
+  </settings>
+
+  <settings pass="oobeSystem">
+    <component name="Microsoft-Windows-International-Core"
+               processorArchitecture="amd64"
+               publicKeyToken="31bf3856ad364e35"
+               language="neutral"
+               versionScope="nonSxS">
+      <InputLocale>en-US</InputLocale>
+      <SystemLocale>en-US</SystemLocale>
+      <UILanguage>en-US</UILanguage>
+      <UserLocale>en-US</UserLocale>
+    </component>
+
+    <component name="Microsoft-Windows-Shell-Setup"
+               processorArchitecture="amd64"
+               publicKeyToken="31bf3856ad364e35"
+               language="neutral"
+               versionScope="nonSxS">
+      <OOBE>
+        <HideEULAPage>true</HideEULAPage>
+        <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
+        <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+        <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+        <HideLocalAccountScreen>true</HideLocalAccountScreen>
+        <ProtectYourPC>3</ProtectYourPC>
+      </OOBE>
+
+      <UserAccounts>
+        <LocalAccounts>
+          <LocalAccount wcm:action="add">
+            <Name>deploy</Name>
+            <DisplayName>deploy</DisplayName>
+            <Description>Local administrator created by pxe-win11-deploy</Description>
+            <Group>Administrators</Group>
+            <Password>
+              <!-- !!! change this, and note it is stored in cleartext on the deploy share !!! -->
+              <Value>ChangeMe-Str0ng!</Value>
+              <PlainText>true</PlainText>
+            </Password>
+          </LocalAccount>
+        </LocalAccounts>
+      </UserAccounts>
+
+      <TimeZone>W. Europe Standard Time</TimeZone>
+
+      <!-- Safety net: if SetupComplete.cmd never fires, this still starts the post-install phase.
+           Post-Install.ps1 is idempotent (marker files under C:\Deploy). -->
+      <FirstLogonCommands>
+        <SynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Description>pxe-win11-deploy post-install</Description>
+          <CommandLine>powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\Deploy\Post-Install.ps1</CommandLine>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+      </FirstLogonCommands>
+    </component>
+  </settings>
+
+</unattend>
