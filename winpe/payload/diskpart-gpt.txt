@@ -1,0 +1,17 @@
+rem Fallback partitioning. Deploy.ps1 uses the Storage cmdlets (WinPE-StorageWMI) by default;
+rem if Get-Disk/New-Partition are unavailable, substitute the real disk number for @DISK@ and run:
+rem     diskpart /s X:\Deploy\diskpart-gpt.txt
+rem
+rem Layout matches the cmdlet path: 300 MB EFI (S:) + 16 MB MSR + remainder NTFS (W:).
+select disk @DISK@
+clean
+convert gpt
+create partition efi size=300
+format quick fs=fat32 label="SYSTEM"
+assign letter=S
+create partition msr size=16
+create partition primary
+format quick fs=ntfs label="Windows"
+assign letter=W
+list volume
+exit

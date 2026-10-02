@@ -1,0 +1,14 @@
+# credentials baked into the WinPE image - never commit
+winpe/payload/secrets.json
+
+# media / images / drivers are big and site-specific
+images/*.iso
+images/*.wim
+images/*.esd
+drivers/
+*.iso
+
+# deployment output
+logs/
+state/
+http-publish/

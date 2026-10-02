@@ -1,0 +1,70 @@
+#!ipxe
+# /srv/http/boot.ipxe  -  stage-2 menu (fetched over HTTP by the embedded iPXE script).
+# Placeholder @SERVER_IP@ is substituted by build-ipxe.sh.
+
+set server @SERVER_IP@
+set base   http://${server}
+
+:start
+menu pxe-win11-deploy - ${server}
+item --gap -- ------------------------ Deploy ------------------------
+item win11        Deploy Windows 11 26H2 (automated, wipes disk)
+item win11-manual Windows Setup (manual, keeps disks until you choose)
+item --gap -- ------------------------ Rescue ------------------------
+item winpe        WinPE shell (no deployment)
+item disk         Repair tools: diskpart / bcdboot / chkdsk
+item --gap -- ------------------------ Other -------------------------
+item netbootxyz   netboot.xyz (online menu)
+item shell        iPXE shell
+item reboot       Reboot
+item --gap -- --------------------------------------------------------
+choose --default win11 --timeout 30000 target && goto ${target}
+
+# --------------------------------------------------------------------------
+# Automated deployment: chainload wimboot with the WinPE boot files kept in
+# /winpe. wimboot is the "kernel"; BCD/boot.sdi/boot.wim are injected as
+# initrds and must be named exactly as the loader expects.
+# --------------------------------------------------------------------------
+:win11
+kernel  ${base}/boot/wimboot
+initrd  ${base}/winpe/Boot/BCD               BCD
+initrd  ${base}/winpe/Boot/boot.sdi          boot.sdi
+initrd  ${base}/winpe/sources/boot.wim       boot.wim
+imgargs wimboot initrdfile=${base}/winpe/Boot/BCD,${base}/winpe/Boot/boot.sdi,${base}/winpe/sources/boot.wim
+boot || goto failed
+
+# Same WinPE, but startnet.cmd drops to a shell instead of running Deploy.ps1.
+:winpe
+kernel  ${base}/boot/wimboot
+initrd  ${base}/winpe/Boot/BCD               BCD
+initrd  ${base}/winpe/Boot/boot.sdi          boot.sdi
+initrd  ${base}/winpe-deploy/sources/boot.wim boot.wim
+boot || goto failed
+
+# Boot Windows Setup itself from the 26H2 media over HTTP and let a human drive it.
+# Media layout: /win11/sources/boot.wim + /win11/boot/BCD + /win11/boot/boot.sdi
+:win11-manual
+kernel  ${base}/boot/wimboot
+initrd  ${base}/win11/boot/BCD       BCD
+initrd  ${base}/win11/boot/boot.sdi  boot.sdi
+initrd  ${base}/win11/sources/boot.wim boot.wim
+boot || goto failed
+
+:disk
+kernel  ${base}/boot/wimboot
+initrd  ${base}/winpe/Boot/BCD               BCD
+initrd  ${base}/winpe/Boot/boot.sdi          boot.sdi
+initrd  ${base}/winpe-repair/sources/boot.wim boot.wim
+boot || goto failed
+
+:netbootxyz
+chain --replace --autofree https://boot.netboot.xyz/menu.ipxe || goto failed
+
+:shell
+shell
+
+:reboot
+reboot
+
+:failed
+prompt --key s --timeout 15000 Something went wrong. 's' for the iPXE shell, else reboot && shell || reboot
